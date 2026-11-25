@@ -1,0 +1,8 @@
+{
+  "name": "復古網格迷宮 3D",
+  "description": "第一人稱 3D 網格迷宮探險遊戲：自由搭配材質與難度，在火把微光與巡邏怪物之間點亮所有祭壇並逃出迷宮。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
