@@ -18,7 +18,7 @@ class AudioEngine {
     } catch {
       this.muted = false;
     }
-    this.loadBgmUrl('/bgm/map_01.mp3', 'map_01.mp3');
+    this.loadBgmUrl(`${import.meta.env.BASE_URL}bgm/map_01.mp3`, 'map_01.mp3');
   }
 
   public loadBgmUrl(url: string, label: string) {
