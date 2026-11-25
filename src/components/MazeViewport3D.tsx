@@ -21,6 +21,7 @@ interface MazeViewport3DProps {
   monsters: MonsterEntity[];
   texChoice: TextureChoice;
   allAltarsLit: boolean;
+  onSwipeAction?: (action: 'FORWARD' | 'BACKWARD' | 'LEFT' | 'RIGHT') => void;
 }
 
 const CELL = 1.0;
@@ -51,8 +52,10 @@ export const MazeViewport3D: React.FC<MazeViewport3DProps> = ({
   monsters,
   texChoice,
   allAltarsLit,
+  onSwipeAction,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [contextLost, setContextLost] = useState(false);
 
   // Latest props in refs so WebGL render loop never tears down on UI state changes
@@ -383,13 +386,17 @@ export const MazeViewport3D: React.FC<MazeViewport3DProps> = ({
     const resize = () => {
       const w = container.clientWidth || window.innerWidth;
       const h = container.clientHeight || window.innerHeight;
-      camera.aspect = w / Math.max(1, h);
+      const aspect = w / Math.max(1, h);
+      camera.aspect = aspect;
+      // Keep desktop & landscape at exact 72 deg; gently widen vertical FOV in portrait so corridor side walls stay visible
+      camera.fov = aspect < 1 ? Math.min(102, 72 / Math.pow(aspect, 0.42)) : 72;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h, false);
     };
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(container);
+    window.addEventListener('orientationchange', resize);
 
     let frameId = 0;
     let disposed = false;
@@ -527,6 +534,7 @@ export const MazeViewport3D: React.FC<MazeViewport3DProps> = ({
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
       ro.disconnect();
+      window.removeEventListener('orientationchange', resize);
       canvas.removeEventListener('webglcontextlost', onContextLost);
       canvas.removeEventListener('webglcontextrestored', onContextRestored);
       clearWorld();
@@ -555,8 +563,34 @@ export const MazeViewport3D: React.FC<MazeViewport3DProps> = ({
     sceneApiRef.current?.updateTexturesOnly(texChoice);
   }, [texChoice]);
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (gameState !== 'PLAYING' || !onSwipeAction || e.touches.length !== 1) return;
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (gameState !== 'PLAYING' || !onSwipeAction || !touchStartRef.current) return;
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 32) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      onSwipeAction(dx > 0 ? 'RIGHT' : 'LEFT');
+    } else {
+      onSwipeAction(dy < 0 ? 'FORWARD' : 'BACKWARD');
+    }
+  };
+
   return (
-    <div className="relative w-full h-full bg-[#060911]">
+    <div
+      className="relative w-full h-full bg-[#060911]"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div ref={containerRef} className="w-full h-full" />
       {contextLost && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#090d16] text-slate-300 text-sm px-6 text-center">

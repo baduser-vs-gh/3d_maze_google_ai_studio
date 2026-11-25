@@ -1,5 +1,6 @@
 import React from 'react';
 import { AltarEntity, GridPoint, PlayerState } from '../game/types';
+import { ViewportInfo } from '../hooks/useViewportMode';
 
 interface FullMapModalProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface FullMapModalProps {
   startPos: GridPoint;
   goalPos: GridPoint;
   altars: AltarEntity[];
+  viewport: ViewportInfo;
   onClose: () => void;
 }
 
@@ -26,6 +28,7 @@ export const FullMapModal: React.FC<FullMapModalProps> = ({
   startPos,
   goalPos,
   altars,
+  viewport,
   onClose,
 }) => {
   if (!open) return null;
@@ -33,14 +36,26 @@ export const FullMapModal: React.FC<FullMapModalProps> = ({
   const altarLookup = new Map<string, AltarEntity>();
   for (const a of altars) altarLookup.set(`${a.x},${a.y}`, a);
 
-  const cellPx = Math.max(8, Math.min(20, Math.floor(380 / size)));
+  const isLandscapeMobile = viewport.mode === 'mobile-landscape';
+  const maxBoardPx =
+    viewport.mode === 'desktop'
+      ? 380
+      : isLandscapeMobile
+        ? Math.min(viewport.height - 135, viewport.width * 0.5)
+        : Math.min(viewport.width - 76, viewport.height - 230);
+
+  const cellPx = Math.max(7, Math.min(20, Math.floor(maxBoardPx / size)));
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#050811]/90 p-4">
-      <div className="bg-[#0e1526] border border-slate-700 rounded-xl p-6 shadow-2xl flex flex-col items-center gap-4 max-w-[95vw] max-h-[92vh]">
-        <div className="w-full flex items-center justify-between gap-6">
-          <h3 className="font-display text-lg font-bold text-amber-300">已探索地圖</h3>
-          <div className="flex items-center gap-3 text-xs text-slate-400">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#050811]/90 p-3 md:p-4 safe-inset">
+      <div
+        className={`bg-[#0e1526] border border-slate-700 rounded-xl shadow-2xl flex flex-col items-center max-w-[96vw] max-h-[94dvh] ${
+          isLandscapeMobile ? 'p-3.5 gap-2.5' : 'p-5 md:p-6 gap-4'
+        }`}
+      >
+        <div className="w-full flex flex-wrap items-center justify-between gap-x-5 gap-y-1.5">
+          <h3 className="font-display text-base md:text-lg font-bold text-amber-300">已探索地圖</h3>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] md:text-xs text-slate-400">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-2.5 h-2.5 bg-sky-500 rounded-xs" />
               足跡
@@ -60,7 +75,7 @@ export const FullMapModal: React.FC<FullMapModalProps> = ({
           </div>
         </div>
 
-        <div className="overflow-auto max-w-full max-h-[65vh] p-1 bg-[#070b14] border border-slate-800 rounded-lg">
+        <div className="overflow-auto max-w-full p-1 bg-[#070b14] border border-slate-800 rounded-lg">
           <div
             className="grid gap-[1px]"
             style={{
@@ -101,9 +116,9 @@ export const FullMapModal: React.FC<FullMapModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm font-medium text-slate-100 transition-colors cursor-pointer whitespace-nowrap"
+          className="px-5 py-2.5 min-h-[44px] rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm font-medium text-slate-100 transition-colors cursor-pointer whitespace-nowrap"
         >
-          關閉地圖 (Space / ESC)
+          {viewport.mode === 'desktop' ? '關閉地圖 (Space / ESC)' : '關閉地圖'}
         </button>
       </div>
     </div>
